@@ -1,0 +1,58 @@
+export const hotPosts = [
+  {
+    id: 1,
+    category: "일반 건강",
+    rank: 1,
+    badge: "HOT",
+    title: "감기 증상 완화에 도움되는 민간요법 공유해요",
+    content:
+      "요즘 환절기라 감기 걸리신 분들 많으시죠? 제가 효과 봤던 방법들 공유드립니다. 생강차와 꿀을 섞어서...",
+    writer: "건강지킴이",
+    time: "2시간 전",
+    view: 1256,
+    comment: 124,
+    like: 45,
+  },
+  {
+    id: 2,
+    category: "정신건강",
+    rank: 2,
+    badge: "HOT",
+    title: "불면증 극복 후기",
+    content:
+      "3년간 불면증으로 고생했는데 드디어 극복했습니다. 제 경험 공유드릴게요. 규칙적인 수면 패턴과...",
+    writer: "꿀잠맨",
+    time: "1일 전",
+    view: 3412,
+    comment: 245,
+    like: 89,
+  },
+  {
+    id: 3,
+    category: "운동/재활",
+    rank: 3,
+    badge: "HOT",
+    title: "허리 디스크 재활 운동 루틴",
+    content:
+      "물리치료사님께 배운 재활 운동 루틴 공유합니다. 같은 증상 있으신 분들께 도움이 되길 바랍니다...",
+    writer: "재활중",
+    time: "6시간 전",
+    view: 2203,
+    comment: 189,
+    like: 67,
+  },
+  {
+    id: 4,
+    category: "영양/다이어트",
+    rank: 4,
+    badge: "HOT",
+    title: "단백질 섭취 완벽 가이드",
+    content:
+      "운동하시는 분들 필독! 단백질 섭취에 대한 모든 것을 정리했습니다. 언제, 어떻게, 얼마나 먹어...",
+    writer: "헬스트레이너",
+    time: "3시간 전",
+    view: 1876,
+    comment: 156,
+    like: 52,
+  },
+];
