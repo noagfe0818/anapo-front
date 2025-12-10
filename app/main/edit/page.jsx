@@ -1,58 +1,106 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Lock, Bell, Settings } from "lucide-react";
+import axios from "axios"; 
 
 export default function SettingsPage() {
-  // 현재 선택된 메뉴
   const [activeMenu, setActiveMenu] = useState("profile");
 
-  // -------------------------------
-  // ⭐ 하드코딩된 관리자 정보 (나중에 백엔드 연결 예정)
-  // -------------------------------
   const [adminInfo, setAdminInfo] = useState({
-    name: "사용자",
-    email: "admin@medicare.com",
+    name: "",
+    email: "",
+    phone: "",
     department: "시스템관리팀",
-    phone: "010-1234-5678",
     position: "시스템 관리자",
   });
 
-  /*
-  🔌 [백엔드 연동 예정 코드]
+  const [passwordData, setPasswordData] = useState({
+    current: "",
+    new: "",
+    confirm: "",
+  });
 
+  // 1. 내 정보 불러오기
   useEffect(() => {
-    async function fetchAdminInfo() {
-      const res = await fetch("http://localhost:8080/api/admin/info", {
-        credentials: "include",
-      });
-      const data = await res.json();
-      setAdminInfo(data);
-    }
-    fetchAdminInfo();
+    const fetchMyInfo = async () => {
+      const myId = localStorage.getItem("userId");
+      if (!myId) return;
+
+      try {
+        const res = await axios.get(`http://localhost:8081/user/${myId}`);
+        const data = res.data;
+        setAdminInfo((prev) => ({
+          ...prev,
+          name: data.userName,
+          email: data.userId,
+          phone: data.userNumber || "",
+        }));
+      } catch (err) {
+        console.error("정보 로드 실패:", err);
+      }
+    };
+    fetchMyInfo();
   }, []);
 
-  async function saveProfile() {
-    await fetch("http://localhost:8080/api/admin/update", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(adminInfo),
-    });
-  }
+  // ✅ 2. 프로필 저장 (즉시 반영 로직 추가됨)
+  const handleSaveProfile = async () => {
+    const myId = localStorage.getItem("userId");
+    try {
+      const payload = {
+        userName: adminInfo.name,
+        userNumber: adminInfo.phone,
+      };
 
-  async function changePassword() {
-    await fetch("http://localhost:8080/api/admin/password", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        oldPassword,
-        newPassword,
-      }),
-    });
-  }
-  */
+      // DB 업데이트
+      await axios.patch(`http://localhost:8081/user/accUpdate/${myId}`, payload);
+      
+      alert("프로필 정보가 수정되었습니다.");
+
+      // 🔥 [중요] 브라우저에 저장된 이름도 바로 바꿔치기!
+      if (adminInfo.name) {
+        localStorage.setItem("userName", adminInfo.name);
+      }
+
+      // 화면 새로고침하며 마이페이지로 이동
+      window.location.href = "/main/my"; 
+
+    } catch (err) {
+      console.error(err);
+      alert("저장에 실패했습니다.");
+    }
+  };
+
+  // 3. 비밀번호 변경
+  const handleSavePassword = async () => {
+    const myId = localStorage.getItem("userId");
+
+    if (!passwordData.new) {
+      alert("새 비밀번호를 입력해주세요.");
+      return;
+    }
+    if (passwordData.new !== passwordData.confirm) {
+      alert("새 비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    if (passwordData.new.length < 4) { 
+        alert("비밀번호는 최소 4자 이상이어야 합니다.");
+        return;
+    }
+
+    try {
+      const payload = { userPassword: passwordData.new };
+      await axios.patch(`http://localhost:8081/user/accUpdate/${myId}`, payload);
+      
+      alert("비밀번호가 변경되었습니다. 보안을 위해 다시 로그인해주세요.");
+      localStorage.clear();
+      window.location.href = "/main/login";
+      
+    } catch (err) {
+      console.error(err);
+      alert("비밀번호 변경에 실패했습니다.");
+    }
+  };
 
   return (
     <section className="min-h-screen bg-gray-50 py-10">
@@ -61,9 +109,6 @@ export default function SettingsPage() {
         <p className="text-gray-600 mb-8">사용자 계정 설정을 관리합니다</p>
 
         <div className="grid grid-cols-12 gap-6">
-          {/* ---------------------------------------------------------------- */}
-          {/* ⭐ 왼쪽 사이드 메뉴 */}
-          {/* ---------------------------------------------------------------- */}
           <aside className="col-span-3 bg-white shadow rounded-xl p-4 h-fit">
             <button
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 ${
@@ -73,7 +118,6 @@ export default function SettingsPage() {
             >
               <User size={18} /> 프로필
             </button>
-
             <button
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 ${
                 activeMenu === "security" ? "bg-blue-50 text-blue-600" : ""
@@ -82,56 +126,21 @@ export default function SettingsPage() {
             >
               <Lock size={18} /> 보안
             </button>
-
-            <button
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 ${
-                activeMenu === "alert" ? "bg-blue-50 text-blue-600" : ""
-              }`}
-              onClick={() => setActiveMenu("alert")}
-            >
-              <Bell size={18} /> 알림
-            </button>
-
-            <button
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${
-                activeMenu === "system" ? "bg-blue-50 text-blue-600" : ""
-              }`}
-              onClick={() => setActiveMenu("system")}
-            >
-              <Settings size={18} /> 시스템
-            </button>
           </aside>
 
-          {/* ---------------------------------------------------------------- */}
-          {/* ⭐ 오른쪽 메인 콘텐츠 */}
-          {/* ---------------------------------------------------------------- */}
           <div className="col-span-9 bg-white shadow rounded-xl p-8">
-            {/* ---------------------------------------------------------------- */}
-            {/* 📌 1) 프로필 화면 */}
-            {/* ---------------------------------------------------------------- */}
             {activeMenu === "profile" && (
               <div>
                 <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
                   <User size={20} /> 프로필 정보
                 </h2>
-                <p className="text-gray-500 mb-6">
-                  사용자 계정 정보를 관리합니다
-                </p>
-
-                {/* 프로필 사진 영역 */}
-                <div className="flex items-center gap-6 mb-8">
+                <div className="flex items-center gap-6 mb-8 mt-4">
                   <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 text-4xl">
                     <User size={44} />
                   </div>
-                  <button className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm">
-                    사진 변경
-                  </button>
-                  <span className="text-gray-400 text-sm">
-                    JPG, PNG 파일 (최대 2MB)
-                  </span>
+                  <span className="text-gray-400 text-sm">기본 프로필 이미지</span>
                 </div>
 
-                {/* 입력 폼 */}
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="text-sm text-gray-700">이름</label>
@@ -139,138 +148,67 @@ export default function SettingsPage() {
                       type="text"
                       className="w-full mt-1 border border-gray-300 rounded-lg p-2"
                       value={adminInfo.name}
-                      onChange={(e) =>
-                        setAdminInfo({ ...adminInfo, name: e.target.value })
-                      }
+                      onChange={(e) => setAdminInfo({ ...adminInfo, name: e.target.value })}
                     />
                   </div>
-
-                  {/* <div>
-                    <label className="text-sm text-gray-700">부서</label>
-                    <input
-                      type="text"
-                      className="w-full mt-1 border border-gray-300 rounded-lg p-2"
-                      value={adminInfo.department}
-                      onChange={(e) =>
-                        setAdminInfo({
-                          ...adminInfo,
-                          department: e.target.value,
-                        })
-                      }
-                    />
-                  </div> */}
-
                   <div>
-                    <label className="text-sm text-gray-700">이메일</label>
+                    <label className="text-sm text-gray-700">이메일 (아이디)</label>
                     <input
                       type="email"
-                      className="w-full mt-1 border border-gray-300 rounded-lg p-2"
+                      disabled
+                      className="w-full mt-1 border border-gray-300 rounded-lg p-2 bg-gray-100 text-gray-500"
                       value={adminInfo.email}
-                      onChange={(e) =>
-                        setAdminInfo({ ...adminInfo, email: e.target.value })
-                      }
+                      onChange={(e) => setAdminInfo({ ...adminInfo, email: e.target.value })}
                     />
                   </div>
-
                   <div>
                     <label className="text-sm text-gray-700">전화번호</label>
                     <input
                       type="text"
                       className="w-full mt-1 border border-gray-300 rounded-lg p-2"
                       value={adminInfo.phone}
-                      onChange={(e) =>
-                        setAdminInfo({ ...adminInfo, phone: e.target.value })
-                      }
+                      onChange={(e) => setAdminInfo({ ...adminInfo, phone: e.target.value })}
                     />
                   </div>
-
-                  {/* <div className="col-span-2">
-                    <label className="text-sm text-gray-700">직책</label>
-                    <input
-                      type="text"
-                      className="w-full mt-1 border rounded-lg p-2"
-                      value={adminInfo.position}
-                      onChange={(e) =>
-                        setAdminInfo({
-                          ...adminInfo,
-                          position: e.target.value,
-                        })
-                      }
-                    />
-                  </div> */}
                 </div>
-
-                {/* 저장 버튼 */}
-                <button className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                <button 
+                  onClick={handleSaveProfile}
+                  className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
                   저장
                 </button>
-
-                {/* 
-                🔌 나중에 백엔드 저장 버튼 연결  
-                onClick={saveProfile} 
-                */}
               </div>
             )}
 
-            {/* ---------------------------------------------------------------- */}
-            {/* 📌 2) 보안 설정 화면 */}
-            {/* ---------------------------------------------------------------- */}
             {activeMenu === "security" && (
               <div>
                 <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
                   <Lock size={20} /> 보안 설정
                 </h2>
-                <p className="text-gray-500 mb-6">
-                  비밀번호 및 보안 설정을 관리합니다
-                </p>
-
-                <div className="space-y-5">
-                  <div>
-                    <input
-                      type="password"
-                      placeholder="현재 비밀번호를 입력하세요"
-                      className="w-full border rounded-lg p-3"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="password"
-                      placeholder="새 비밀번호를 입력하세요"
-                      className="w-full border rounded-lg p-3"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="password"
-                      placeholder="새 비밀번호를 다시 입력하세요"
-                      className="w-full border rounded-lg p-3"
-                    />
-                  </div>
+                <div className="space-y-5 mt-4">
+                  <input
+                    type="password"
+                    placeholder="새 비밀번호"
+                    className="w-full border rounded-lg p-3"
+                    value={passwordData.new}
+                    onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
+                  />
+                  <input
+                    type="password"
+                    placeholder="새 비밀번호 확인"
+                    className="w-full border rounded-lg p-3"
+                    value={passwordData.confirm}
+                    onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
+                  />
                 </div>
-
-                {/* 요구사항 박스 */}
-                <div className="mt-6 bg-blue-50 border border-blue-100 p-4 rounded-lg">
-                  <p className="font-semibold text-blue-700 mb-2">
-                    🔐 비밀번호 요구사항
-                  </p>
-                  <ul className="text-sm text-blue-700 leading-6">
-                    <li>• 최소 8자 이상</li>
-                    <li>• 영문 대소문자, 숫자, 특수문자 포함</li>
-                    <li>• 연속된 문자 또는 숫자 사용 금지</li>
-                  </ul>
-                </div>
-
-                <button className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                <button 
+                  onClick={handleSavePassword}
+                  className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
                   비밀번호 변경
                 </button>
-
-                {/*  
-                🔌 나중에 비밀번호 변경 버튼 클릭 → changePassword() 실행
-                */}
               </div>
             )}
-
-            {/* (알림 / 시스템 화면은 필요 시 만들어줄게!) */}
           </div>
         </div>
       </div>

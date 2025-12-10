@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Heart, MapPin, Activity, User, Phone, Mail, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../src/context/AuthContext"; // 경로 확인 필요!
-import axios from "axios"; // axios 추가
+import { useAuth } from "../../../src/context/AuthContext";
+import axios from "axios"; 
 
 export default function MyPage() {
   // 1. AuthContext에서 로그인한 유저 정보 가져오기
   const { user, loading } = useAuth();
   const router = useRouter();
+
+  // ✅ [추가] 최신 유저 정보를 저장할 상태 (수정된 내용 반영용)
+  const [userInfo, setUserInfo] = useState(null);
 
   // 2. 로그인 안 했으면 로그인 페이지로 쫓아내기
   useEffect(() => {
@@ -56,32 +59,36 @@ export default function MyPage() {
   // ---------------------------------------------------------
   const [recentReservations, setRecentReservations] = useState([]);
 
+  // ✅ [수정] 화면이 켜지면 '예약 내역'과 '내 최신 정보'를 같이 불러옴
   useEffect(() => {
-    const fetchReservations = async () => {
+    const fetchData = async () => {
         // 로컬스토리지에서 로그인한 유저 ID 가져오기
         const storedUserId = localStorage.getItem("userId");
         if (!storedUserId) return;
 
         try {
-            // 백엔드 요청: 내 ID(acc)로 된 예약 가져오기
-            // (백엔드 컨트롤러에 @GetMapping("/user/{accId}")가 있어야 함)
+            // 1. 내 최신 정보 가져오기 (이름, 전화번호 갱신용)
+            // 수정된 정보를 DB에서 바로 가져옵니다.
+            const userRes = await axios.get(`http://localhost:8081/user/${storedUserId}`);
+            setUserInfo(userRes.data); // 받아온 최신 정보 저장
+
+            // 2. 예약 내역 가져오기
             const response = await axios.get(`http://localhost:8081/reservations/user/${storedUserId}`);
             
             // 데이터 최신순 정렬 (id 기준 내림차순)
             const sortedData = response.data.sort((a, b) => b.id - a.id);
-            
             setRecentReservations(sortedData);
             
             // 통계 숫자 업데이트 (예약 건수)
             setStats(prev => ({ ...prev, reservations: sortedData.length }));
 
         } catch (error) {
-            console.error("예약 내역 불러오기 실패:", error);
+            console.error("데이터 불러오기 실패:", error);
         }
     };
 
     if (user) {
-        fetchReservations();
+        fetchData();
     }
   }, [user]);
 
@@ -94,7 +101,7 @@ export default function MyPage() {
     );
   }
 
-  // 날짜 포맷팅 함수 (2025-12-20T13:00 -> 2025.12.20 13:00)
+  // 날짜 포맷팅 함수
   const formatDate = (dateString) => {
     try {
         const date = new Date(dateString);
@@ -108,6 +115,10 @@ export default function MyPage() {
         return dateString;
     }
   };
+
+  // ✅ 화면에 보여줄 정보 선택:
+  // userInfo(방금 DB에서 가져온 최신 정보)가 있으면 그거 쓰고, 없으면 user(로그인 정보) 씀
+  const displayUser = userInfo || user;
 
   return (
     <section className="min-h-screen bg-gray-50 py-10">
@@ -126,21 +137,22 @@ export default function MyPage() {
         </div>
 
         {/* ----------------------------- */}
-        {/* 사용자 정보 (백엔드 데이터 연동 완료) */}
+        {/* 사용자 정보 (최신 데이터 연동) */}
         {/* ----------------------------- */}
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* 프로필 아이콘 */}
             <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center text-4xl font-bold text-[#5CA0FF]">
-              {user.userName ? user.userName.charAt(0) : "U"}
+              {displayUser.userName ? displayUser.userName.charAt(0) : "U"}
             </div>
             
             {/* 상세 정보 */}
             <div className="flex-1 w-full space-y-3">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">{user.userName}님</h2>
+                {/* ✅ 최신 이름 표시 */}
+                <h2 className="text-2xl font-bold text-gray-900">{displayUser.userName}님</h2>
                 <button
-                  onClick={() => router.push("/main/edit")}
+                  onClick={() => router.push("/main/edit")} // 경로 확인 필요 (edit 폴더 위치)
                   className="border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-50 transition"
                 >
                   정보 수정
@@ -150,19 +162,23 @@ export default function MyPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="flex items-center gap-3 text-gray-600">
                   <Mail size={18} className="text-[#5CA0FF]" />
-                  <span>{user.userId}</span>
+                  {/* ✅ 최신 아이디 */}
+                  <span>{displayUser.userId}</span>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">
                   <Phone size={18} className="text-[#5CA0FF]" />
-                  <span>{user.userNumber}</span>
+                  {/* ✅ 최신 전화번호 */}
+                  <span>{displayUser.userNumber}</span>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">
                   <Calendar size={18} className="text-[#5CA0FF]" />
-                  <span>{user.birth}</span>
+                  {/* userBirth 또는 birth 필드명 대응 */}
+                  <span>{displayUser.birth || displayUser.userBirth}</span>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">
                   <User size={18} className="text-[#5CA0FF]" />
-                  <span>{user.sex}</span>
+                  {/* userSex 또는 sex 필드명 대응 */}
+                  <span>{displayUser.sex || displayUser.userSex}</span>
                 </div>
               </div>
             </div>
@@ -205,10 +221,8 @@ export default function MyPage() {
             ) : (
               recentReservations.map((item, i) => (
                 <div key={i} className="border rounded-xl p-4 mb-3">
-                  {/* 여기가 핵심: 백엔드 데이터(item)를 화면에 뿌려주는 부분 */}
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-gray-900">
-                        {/* 병원 이름이 hospital 객체 안에 있는지, 바로 있는지 확인해서 출력 */}
                         {item.hospital?.hosName || item.hosName || "병원 정보 없음"}
                     </span>
                     <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
@@ -247,7 +261,6 @@ export default function MyPage() {
                     </p>
                   </div>
 
-                  {/* 삭제 */}
                   <button className="text-gray-400 hover:text-red-500 transition p-2">
                     ✕
                   </button>
