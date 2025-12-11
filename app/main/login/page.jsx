@@ -4,7 +4,7 @@ import { Activity, Mail, Lock, MoveLeft } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../src/context/AuthContext"; // 경로 확인 필요
+import { useAuth } from "../../../src/context/AuthContext";
 
 const Page = () => {
   const [email, setemail] = useState("");
@@ -12,48 +12,39 @@ const Page = () => {
   const [remember, setRemember] = useState(false);
 
   const router = useRouter();
-  const { login } = useAuth(); // AuthContext에서 login 함수 가져오기
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      // 1. 백엔드 주소(8081)로 요청
       const response = await fetch("http://localhost:8081/user/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          userId: email,       
-          userPassword: password, 
-        }),
+        body: JSON.stringify({ userId: email, userPassword: password }),
       });
 
       if (response.ok) {
-        // 성공 시: 백엔드가 보내준 사용자 정보(JSON) 받기
         const data = await response.json();
 
-        // ✅ [핵심 수정] 로그인 성공 시 브라우저에 ID 저장!
-        // 이게 있어야 마이페이지에서 내 예약 내역을 불러올 수 있습니다.
         if (data.id) {
              localStorage.setItem("userId", data.id);
+             // ✅ [핵심 추가] 로그인할 때 이름도 같이 저장!
+             localStorage.setItem("userName", data.userName); 
         }
 
-        // Context에 사용자 정보 저장
         if (login) login(data);
 
         alert(`환영합니다, ${data.userName || "회원"}님!`);
         router.push("/main");
       } else {
-        // 실패 시
         const errorText = await response.text();
         alert(errorText || "로그인에 실패했습니다.");
       }
     } catch (error) {
       console.error("로그인 에러:", error);
-      alert("서버와 연결할 수 없습니다. 백엔드가 켜져 있나요?");
+      alert("서버와 연결할 수 없습니다.");
     }
   };
 
@@ -64,7 +55,6 @@ const Page = () => {
           <div className="p-3 bg-blue-100 rounded-2xl items-center">
             <Activity color="#5CA0FF" size={38} />
           </div>
-
           <h1 className="font-bold text-2xl text-gray-900 ">anapo에 로그인</h1>
           <span className="text-lg text-gray-600 ">
             의료 서비스를 더 편리하게 이용하세요

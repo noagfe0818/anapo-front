@@ -9,16 +9,13 @@ const MainHeader = () => {
   const { isLoggedIn, logout } = useAuth();
   const router = useRouter();
 
-  // ✅ [수정된 부분] 로그아웃 버튼을 눌렀을 때 실행되는 함수
   const handleLogout = () => {
-    // 1. 브라우저 주머니(로컬 스토리지)에 있는 이전 사람의 흔적을 싹 지운다! (가장 중요)
+    // 1. 브라우저에 저장된 내 정보(ID, 이름, 토큰) 싹 지우기
     localStorage.removeItem("userId");
-    localStorage.removeItem("token"); // 혹시 토큰도 쓴다면 같이 삭제
+    localStorage.removeItem("userName"); // ✅ [추가됨] 이름도 삭제!
+    localStorage.removeItem("token");
 
-    // 2. '로그아웃' 방송하기 (화면을 '로그인 안 된 상태'로 변경)
     logout();
-
-    // 3. 알림 띄우고 로그인 페이지로 이동
     alert("로그아웃되었습니다.");
     router.push("/main/login");
   };
@@ -52,7 +49,6 @@ const MainHeader = () => {
         <div className="flex flex-row gap-1.5 ">
           {isLoggedIn ? (
             <>
-              {/* --- 로그인 했을 때 --- */}
               <Link href="/main/my">
                 <button className=" border border-gray-400 rounded-md px-3 py-1 text-[14px] text-gray-900">
                   마이페이지
@@ -67,7 +63,6 @@ const MainHeader = () => {
             </>
           ) : (
             <>
-              {/* --- 로그인 안 했을 때 --- */}
               <Link href={"/main/login"}>
                 <button className=" border border-gray-400 rounded-md px-3 py-1 text-[14px] text-gray-900">
                   로그인
