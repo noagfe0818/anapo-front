@@ -11,6 +11,10 @@ export default function ReportCenterPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selectedReport, setSelectedReport] = useState(null);
+  const pendingCount = reports.filter((r) => r.status === "대기중").length;
+  const completedCount = reports.filter((r) => r.status === "처리완료").length;
+  const rejectedCount = reports.filter((r) => r.status === "기각").length;
+  const totalCount = reports.length;
 
   // -----------------------------
   // 📌 신고 리스트 불러오기 (백엔드 GET)
@@ -18,59 +22,28 @@ export default function ReportCenterPage() {
   useEffect(() => {
     async function fetchReports() {
       try {
-        /*
-        🔗 Spring Boot API 예시
-        GET /api/admin/reports
+        const res = await fetch("http://localhost:8081/admin/reports");
+        const rawData = await res.json();
 
-        const res = await fetch("/api/admin/reports");
-        const data = await res.json();
-        setReports(data);
-        */
+        // 🔥 백엔드 DTO → 프론트 UI용으로 매핑
+        const mapped = rawData.map((r) => ({
+          id: r.id,
 
-        setReports([
-          {
-            id: 1,
-            target: "김민수",
-            reporter: "이영희",
-            type: "욕설/비방",
-            contentType: "댓글",
-            content: "부적절한 욕설이 포함된 댓글입니다...",
-            date: "2024-12-03 10:30",
-            status: "대기중",
-          },
-          {
-            id: 2,
-            target: "박철수",
-            reporter: "정수진",
-            type: "허위정보",
-            contentType: "리뷰",
-            content: "병원에 대한 허위 정보를 작성했습니다...",
-            date: "2024-12-03 09:15",
-            status: "대기중",
-          },
-          {
-            id: 3,
-            target: "강태양",
-            reporter: "이하늘",
-            type: "허위정보",
-            contentType: "게시글",
-            content: "검증되지 않은 의료 정보 게시...",
-            date: "2024-12-03 11:50",
-            status: "대기중",
-          },
-          {
-            id: 4,
-            target: "송민호",
-            reporter: "조은비",
-            type: "기타",
-            contentType: "댓글",
-            content: "개인정보 노출 댓글...",
-            date: "2024-12-03 08:30",
-            status: "대기중",
-          },
-        ]);
+          // 👇 핵심: 백엔드 구조 그대로 대응
+          target: r.reported?.name ?? "-",
+          reporter: r.reporter?.name ?? "-",
+
+          type: convertReportType(r.reportType),
+          contentType: convertTargetType(r.targetType),
+          content: r.description ?? "-",
+          date: formatDate(r.createdAt),
+          status: convertStatus(r.status),
+          adminMemo: r.adminMemo ?? "",
+        }));
+
+        setReports(mapped);
       } catch (err) {
-        console.error("신고 불러오기 실패", err);
+        console.error("신고 불러오기 실패:", err);
       }
     }
 
@@ -114,30 +87,34 @@ export default function ReportCenterPage() {
   // 📌 신고 처리하기 (백엔드 POST 요청)
   // -----------------------------
   const handleProcess = async (report, action) => {
-    /*
-    🔗 Spring Boot API 예시
-    POST /api/admin/reports/{id}/approve
-    POST /api/admin/reports/{id}/reject
+    try {
+      const newStatus = action === "approve" ? "COMPLETED" : "REJECTED";
 
-    await fetch(`/api/admin/reports/${report.id}/${action}`, {
-      method: "POST",
-    });
-    */
+      await fetch(`http://localhost:8081/admin/reports/${report.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          adminMemo: "",
+          adminId: 1,
+        }),
+      });
 
-    alert(`신고 ${action === "approve" ? "처리 완료" : "기각"}됨`);
+      // 프론트에서도 상태 변경
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === report.id
+            ? { ...r, status: action === "approve" ? "처리완료" : "기각" }
+            : r
+        )
+      );
 
-    // 프론트에서 상태 업데이트
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === report.id
-          ? {
-              ...r,
-              status: action === "approve" ? "처리완료" : "기각",
-            }
-          : r
-      )
-    );
-    closeDetail();
+      closeDetail();
+    } catch (err) {
+      console.error("신고 처리 실패", err);
+    }
   };
 
   return (
@@ -147,10 +124,18 @@ export default function ReportCenterPage() {
 
       {/* 요약 박스 */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <SummaryCard title="미처리 신고" value="4건" color="blue" />
-        <SummaryCard title="처리 완료" value="3건" color="green" />
-        <SummaryCard title="기각" value="1건" color="red" />
-        <SummaryCard title="전체" value="8건" />
+        <SummaryCard
+          title="미처리 신고"
+          value={`${pendingCount}건`}
+          color="blue"
+        />
+        <SummaryCard
+          title="처리 완료"
+          value={`${completedCount}건`}
+          color="green"
+        />
+        <SummaryCard title="기각" value={`${rejectedCount}건`} color="red" />
+        <SummaryCard title="전체" value={`${totalCount}건`} />
       </div>
 
       {/* 상단 필터 버튼 */}
@@ -230,6 +215,53 @@ export default function ReportCenterPage() {
       )}
     </div>
   );
+}
+
+function convertReportType(type) {
+  switch (type) {
+    case "ABUSE":
+      return "욕설/비방";
+    case "SPAM":
+      return "스팸";
+    case "OBSCENE":
+      return "음란성/부적절";
+    case "PERSONAL_INFO":
+      return "개인정보 노출";
+    case "FALSE_INFO":
+      return "허위정보";
+    default:
+      return "기타";
+  }
+}
+
+function convertTargetType(type) {
+  switch (type) {
+    case "USER":
+      return "사용자";
+    case "POST":
+      return "게시글";
+    case "COMMENT":
+      return "댓글";
+    case "REVIEW":
+      return "리뷰";
+    default:
+      return "기타";
+  }
+}
+
+function convertStatus(status) {
+  switch (status) {
+    case "PENDING":
+      return "대기중";
+    case "IN_PROGRESS":
+      return "처리중";
+    case "COMPLETED":
+      return "처리완료";
+    case "REJECTED":
+      return "기각";
+    default:
+      return status;
+  }
 }
 
 function SummaryCard({ title, value, color }) {

@@ -18,9 +18,34 @@ const slides = [
     ],
   },
   {
-    title: "효주가 나중에 넣을 응급처치",
-    subtitle: "여기에 다른 상황 설명",
-    steps: ["1단계", "2단계", "3단계", "4단계"],
+    title: "골절",
+    subtitle: "심한 통증, 변형, 부종",
+    steps: [
+      "부상 부위를 움직이지 마세요",
+      "깨끗한 천으로 상처를 덮으세요",
+      "부목을 대어 고정하세요",
+      "부상 부위를 심장보다 높게 유지하세요",
+    ],
+  },
+  {
+    title: "뇌졸중",
+    subtitle: "안면 마비, 언어 장애",
+    steps: [
+      "즉시 119에 전화하세요",
+      "환자를 편안하게 눕히세요",
+      "증상 시작 시간을 기록하세요",
+      "음식이나 물을 주지 마세요",
+    ],
+  },
+  {
+    title: "호흡곤란",
+    subtitle: "숨쉬기 어려움",
+    steps: [
+      "편안한 자세로 앉으세요",
+      "천천히 깊게 호흡하세요",
+      "창문을 열어 환기하세요",
+      "증상이 지속되면 즉시 119에 전화하세요",
+    ],
   },
 ];
 
@@ -32,7 +57,7 @@ export default function EmergencySlider() {
   const prev = () => setIndex((i) => (i - 1 + slides.length) % slides.length);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 ">
       {/* 상단 작은 타이틀 카드 */}
       <div className="flex items-center gap-2 text-sm">
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-50 text-red-500">
@@ -49,7 +74,7 @@ export default function EmergencySlider() {
         {/* 위쪽 그라데이션 바 */}
         <div className="h-2 w-full bg-gradient-to-r from-[#FF5C8A] via-[#FF6FB5] to-[#FF9A5C]" />
 
-        <div className="px-6 py-6">
+        <div className="px-6 py-6 ">
           {/* 아이콘 */}
           <div className="flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50">
