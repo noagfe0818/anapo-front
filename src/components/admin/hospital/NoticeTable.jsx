@@ -1,6 +1,6 @@
 import { Eye } from "lucide-react";
 
-export default function NoticeTable({ notices }) {
+export default function NoticeTable({ notices = [] }) {
   return (
     <div className="bg-white shadow-sm rounded-xl overflow-hidden">
       <table className="w-full text-left">
@@ -15,48 +15,56 @@ export default function NoticeTable({ notices }) {
         </thead>
 
         <tbody>
-          {notices.map((n) => (
-            <tr key={n.id} className="border-t border-gray-300">
-              <td className="p-4">{n.hospital}</td>
-
-              <td className="p-4">
-                <div>
-                  <p>{n.title}</p>
-                  {n.reason && (
-                    <p className="text-red-500 text-sm">
-                      위반 유형: {n.reason}
-                    </p>
-                  )}
-                </div>
-              </td>
-
-              <td className="p-4">{n.date}</td>
-
-              <td className="p-4">
-                {n.status === "승인" && (
-                  <span className="px-3 py-1 bg-black text-white rounded-full">
-                    승인
-                  </span>
-                )}
-
-                {n.status === "거부" && (
-                  <span className="px-3 py-1 bg-red-500 text-white rounded-full">
-                    거부
-                  </span>
-                )}
-
-                {n.status === "검토중" && (
-                  <span className="px-3 py-1 bg-gray-300 text-gray-700 rounded-full">
-                    검토중
-                  </span>
-                )}
-              </td>
-
-              <td className="p-4">
-                <Eye className="cursor-pointer" />
+          {notices.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="p-6 text-center text-gray-400">
+                공지사항 데이터가 없습니다.
               </td>
             </tr>
-          ))}
+          ) : (
+            notices.map((n) => (
+              <tr key={n.id} className="border-t border-gray-300">
+                <td className="p-4">{n.hospitalName}</td>
+
+                <td className="p-4">
+                  <div>
+                    <p>{n.title}</p>
+                    {n.rejectReason && (
+                      <p className="text-red-500 text-sm">
+                        사유: {n.rejectReason}
+                      </p>
+                    )}
+                  </div>
+                </td>
+
+                <td className="p-4">{n.createdAt}</td>
+
+                <td className="p-4">
+                  {n.status === "APPROVED" && (
+                    <span className="px-3 py-1 bg-black text-white rounded-full">
+                      승인
+                    </span>
+                  )}
+
+                  {n.status === "REJECTED" && (
+                    <span className="px-3 py-1 bg-red-500 text-white rounded-full">
+                      거부
+                    </span>
+                  )}
+
+                  {n.status === "PENDING" && (
+                    <span className="px-3 py-1 bg-gray-300 text-gray-700 rounded-full">
+                      검토중
+                    </span>
+                  )}
+                </td>
+
+                <td className="p-4">
+                  <Eye className="cursor-pointer" />
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

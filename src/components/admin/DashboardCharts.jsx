@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -11,53 +12,61 @@ import {
   Line,
 } from "recharts";
 
-// 샘플 데이터 (너가 보낸 관리자 페이지 화면 기준)
-const monthlyReports = [
-  { month: "7월", count: 45 },
-  { month: "8월", count: 52 },
-  { month: "9월", count: 38 },
-  { month: "10월", count: 60 },
-  { month: "11월", count: 48 },
-  { month: "12월", count: 22 },
-];
-
-const userGrowth = [
-  { month: "7월", users: 10500 },
-  { month: "8월", users: 10800 },
-  { month: "9월", users: 11200 },
-  { month: "10월", users: 11800 },
-  { month: "11월", users: 12200 },
-  { month: "12월", users: 13500 },
-];
-
 export default function DashboardCharts() {
+  const [reservationRank, setReservationRank] = useState([]);
+  const [bookmarkRank, setBookmarkRank] = useState([]);
+
+  useEffect(() => {
+    async function fetchCharts() {
+      try {
+        // 🔹 예약 랭킹
+        const res1 = await fetch("/api/admin/hospital-rank/reservation");
+        if (res1.ok) {
+          const data = await res1.json();
+          setReservationRank(data.slice(0, 6));
+        }
+
+        // 🔹 즐겨찾기 랭킹
+        const res2 = await fetch("/api/admin/hospital-rank/bookmark");
+        if (res2.ok) {
+          const data = await res2.json();
+          setBookmarkRank(data.slice(0, 6));
+        }
+      } catch (err) {
+        console.error("차트 데이터 로드 실패", err);
+      }
+    }
+
+    fetchCharts();
+  }, []);
+
   return (
     <div className="grid grid-cols-2 gap-6">
-      {/* 월별 신고 현황 (BarChart) */}
-      <div className="bg-white p-6 shadow-sm  rounded-xl h-[350px]">
-        <h2 className="text-lg font-semibold mb-4">월별 신고 현황</h2>
+      {/* 병원 예약 랭킹 */}
+      <div className="bg-white p-6 shadow-sm rounded-xl h-[350px]">
+        <h2 className="text-lg font-semibold mb-4">병원 예약 랭킹 TOP 6</h2>
 
-        <BarChart width={500} height={250} data={monthlyReports}>
+        <BarChart width={500} height={250} data={reservationRank}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
+          <XAxis dataKey="hospitalName" />
           <YAxis />
           <Tooltip />
           <Bar dataKey="count" fill="#4A6CF7" />
         </BarChart>
       </div>
 
-      {/* 사용자 증가 추이 (LineChart) */}
-      <div className="bg-white p-6 shadow-sm  rounded-xl h-[350px]">
-        <h2 className="text-lg font-semibold mb-4">사용자 증가 추이</h2>
+      {/* 병원 즐겨찾기 랭킹 */}
+      <div className="bg-white p-6 shadow-sm rounded-xl h-[350px]">
+        <h2 className="text-lg font-semibold mb-4">병원 즐겨찾기 랭킹 TOP 6</h2>
 
-        <LineChart width={500} height={250} data={userGrowth}>
+        <LineChart width={500} height={250} data={bookmarkRank}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
+          <XAxis dataKey="hospitalName" />
           <YAxis />
           <Tooltip />
           <Line
             type="monotone"
-            dataKey="users"
+            dataKey="count"
             stroke="#22C55E"
             strokeWidth={3}
           />
