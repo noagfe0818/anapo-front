@@ -1,6 +1,6 @@
 export default function ReportTypeBadge({ type }) {
   const colors = {
-    "욕설/비방": "bg-red-100 text-red-600",
+    욕설비방: "bg-red-100 text-red-600",
     허위정보: "bg-orange-100 text-orange-600",
     스팸: "bg-yellow-100 text-yellow-600",
     부적절한내용: "bg-purple-100 text-purple-600",

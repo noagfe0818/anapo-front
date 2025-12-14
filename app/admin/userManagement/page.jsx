@@ -6,105 +6,94 @@ import UserDetailModal from "@/components/common/DetailModal";
 import ConfirmModal from "@/components/common/ConfirmModal";
 
 export default function UserManagementPage() {
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [modalType, setModalType] = useState(null); // "detail" | "warn" | "suspend" | "delete"
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [modalType, setModalType] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL"); // ALL | ACTIVE | WARNING | SUSPENDED
 
   // ---------------------------
-  // 📌 1. 사용자 목록 불러오기 (백엔드 GET 요청)
+  // 📌 사용자 목록 불러오기
   // ---------------------------
   useEffect(() => {
     async function fetchUsers() {
       try {
-        /*
-        🔗 예시: Spring API
-        GET /api/admin/users
-        
         const res = await fetch("/api/admin/users");
-        const data = await res.json();
-        setUsers(data);
-        */
+        if (!res.ok) throw new Error("유저 목록 조회 실패");
 
-        // 👉 현재는 하드코딩
-        setUsers([
-          {
-            id: 1,
-            name: "김민수",
-            email: "minsu@example.com",
-            date: "2024-01-15",
-            status: "정상",
-            reports: 0,
-            bookings: 12,
-          },
-          {
-            id: 2,
-            name: "이영희",
-            email: "younghee@example.com",
-            date: "2024-02-20",
-            status: "경고",
-            reports: 1,
-            bookings: 8,
-          },
-          {
-            id: 3,
-            name: "박철수",
-            email: "chulsoo@example.com",
-            date: "2024-03-10",
-            status: "정상",
-            reports: 0,
-            bookings: 15,
-          },
-          {
-            id: 4,
-            name: "정수진",
-            email: "sujin@example.com",
-            date: "2024-04-05",
-            status: "정지",
-            reports: 3,
-            bookings: 5,
-          },
-        ]);
+        const data = await res.json();
+        setUsers(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("사용자 목록 로드 실패", error);
+        setUsers([]);
       }
     }
 
     fetchUsers();
   }, []);
 
-  // 모달 열기
+  // ---------------------------
+  // 📌 검색 + 상태 필터링
+  // ---------------------------
+  useEffect(() => {
+    let result = [...users];
+
+    // 상태 필터
+    if (statusFilter !== "ALL") {
+      result = result.filter((u) => u.status === statusFilter);
+    }
+
+    // 검색 필터
+    if (search.trim() !== "") {
+      const keyword = search.toLowerCase();
+      result = result.filter(
+        (u) =>
+          u.userName?.toLowerCase().includes(keyword) ||
+          u.userId?.toLowerCase().includes(keyword)
+      );
+    }
+
+    setFilteredUsers(result);
+  }, [users, search, statusFilter]);
+
+  // ---------------------------
+  // 모달 제어
+  // ---------------------------
   const openModal = (type, user) => {
     setSelectedUser(user);
-    setModalType(type); // "detail" | "warn" | "suspend" | "delete"
+    setModalType(type);
   };
 
-  // 모달 닫기
   const closeModal = () => {
-    setModalType(null);
     setSelectedUser(null);
+    setModalType(null);
   };
 
   // ---------------------------
-  // 📌 2. 경고/정지/탈퇴 처리 (백엔드 POST 요청)
+  // 상태 변경
   // ---------------------------
   const handleAction = async (type, user) => {
     try {
-      /*
-      🔗 Spring Controller 예시
-      
-      POST   /api/admin/users/{id}/warn     → 경고
-      POST   /api/admin/users/{id}/suspend  → 정지
-      DELETE /api/admin/users/{id}          → 탈퇴
-      
-      await fetch(`/api/admin/users/${user.id}/${type}`, {
-        method: type === "delete" ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json" }
+      let status;
+      if (type === "warn") status = "WARNING";
+      if (type === "suspend") status = "SUSPENDED";
+      if (type === "delete") status = "DELETED";
+
+      const res = await fetch(`/api/admin/users/${user.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
       });
-      */
 
-      console.log(`${type} 처리됨:`, user);
+      if (!res.ok) throw new Error("상태 변경 실패");
 
-      // 프론트에서 상태만 미리 반영하고 싶다면 여기서 setUsers로 업데이트
+      // 상태 변경 반영
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, status } : u))
+      );
     } catch (err) {
       console.error("작업 실패", err);
     } finally {
@@ -117,48 +106,68 @@ export default function UserManagementPage() {
       <h1 className="text-2xl font-bold mb-1">사용자 관리</h1>
       <p className="text-gray-500 mb-6">회원 정보 및 신고 내역을 관리하세요</p>
 
-      {/* 검색창 (백엔드 검색 API 연결 가능) */}
+      {/* 검색 + 상태 필터 */}
       <div className="flex gap-4 items-center mb-6">
         <input
           type="text"
-          placeholder="이름 또는 이메일로 검색"
+          placeholder="이름 또는 아이디로 검색"
           className="flex-1 inset-shadow-sm px-4 py-2 rounded-xl bg-white"
-          /* 
-          📌 검색 기능 추가할 때 사용:
-          onChange={(e) => searchUsers(e.target.value)}
-          */
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
 
-        <button className="px-4 py-2 bg-black text-white rounded-lg">
-          전체
-        </button>
-        <button className="px-4 py-2 bg-white shadow-sm rounded-lg">
-          정상
-        </button>
-        <button className="px-4 py-2 bg-white shadow-sm rounded-lg">
-          경고
-        </button>
-        <button className="px-4 py-2 bg-white shadow-sm rounded-lg">
-          정지
-        </button>
+        <FilterButton
+          label="전체"
+          active={statusFilter === "ALL"}
+          onClick={() => setStatusFilter("ALL")}
+        />
+        <FilterButton
+          label="정상"
+          active={statusFilter === "ACTIVE"}
+          onClick={() => setStatusFilter("ACTIVE")}
+        />
+        <FilterButton
+          label="경고"
+          active={statusFilter === "WARNING"}
+          onClick={() => setStatusFilter("WARNING")}
+        />
+        <FilterButton
+          label="정지"
+          active={statusFilter === "SUSPENDED"}
+          onClick={() => setStatusFilter("SUSPENDED")}
+        />
       </div>
 
-      <UserTable users={users} onAction={openModal} />
+      <UserTable users={filteredUsers} onAction={openModal} />
 
-      {/* 상세 정보 모달 */}
       {modalType === "detail" && selectedUser && (
         <UserDetailModal user={selectedUser} onClose={closeModal} />
       )}
 
-      {/* 경고/정지/탈퇴 모달 (통합 ConfirmModal 사용) */}
       {["warn", "suspend", "delete"].includes(modalType) && selectedUser && (
         <ConfirmModal
-          type={modalType} // warn | suspend | delete
-          target={selectedUser} // 통합 모달에서는 user가 아니라 target으로 받음
+          type={modalType}
+          target={selectedUser}
           onClose={closeModal}
           onConfirm={() => handleAction(modalType, selectedUser)}
         />
       )}
     </div>
+  );
+}
+
+// ---------------------------
+// 상태 필터 버튼 컴포넌트
+// ---------------------------
+function FilterButton({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-lg ${
+        active ? "bg-black text-white" : "bg-white shadow-sm"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
