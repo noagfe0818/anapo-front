@@ -20,6 +20,28 @@ export default function Sidebar() {
     { name: "신고센터", icon: AlertCircle, path: "/admin/reportCenter" },
   ];
 
+  // ✅ [수정됨] 백엔드 로그아웃 요청 포함
+  const handleLogout = async () => {
+    if (confirm("관리자 계정에서 로그아웃 하시겠습니까?")) {
+      try {
+        // 1. 백엔드에 로그아웃 요청 보내기 (세션 삭제)
+        // credentials: "include"가 있어야 쿠키(세션ID)를 같이 보내서 서버가 누구인지 압니다.
+        await fetch("http://localhost:8081/user/logout", {
+          method: "GET",
+          credentials: "include", 
+        });
+      } catch (error) {
+        console.error("로그아웃 요청 실패:", error);
+      }
+
+      // 2. 저장된 로그인 정보 모두 삭제
+      localStorage.clear();
+
+      // 3. 로그인 페이지로 이동 (새로고침 효과를 위해 window.location 사용)
+      window.location.href = "/main/login";
+    }
+  };
+
   return (
     <aside className=" w-64 bg-white border-r border-gray-300 p-6 flex flex-col ">
       {/* 제목 */}
@@ -51,7 +73,10 @@ export default function Sidebar() {
 
       {/* 로그아웃 */}
       <div className="mt-auto pt-10">
-        <button className="flex items-center gap-2 text-gray-500 hover:text-red-500 text-sm mt-90 ml-30">
+        <button 
+            onClick={handleLogout} // ✅ 클릭 이벤트 연결
+            className="flex items-center gap-2 text-gray-500 hover:text-red-500 text-sm mt-90 ml-30"
+        >
           <LogOut size={18} />
           로그아웃
         </button>

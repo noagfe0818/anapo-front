@@ -7,7 +7,7 @@ const MainBanner = () => {
     // ✅ 수정: 여기에 'mx-8' (좌우 여백) 추가
     <section className=" pt-20 h-[90vh] bg-gray-50 px-8 ">
       <div className="container mx-auto max-w-8xl py-8">
-        <article className="flex flex-row items-center justify-between gap-3 bg-gradient-to-r from-[#3B8DFF] to-[#B8D5FF] rounded-2xl p-12 ">
+        <article className="flex flex-row items-center justify-between gap-3 bg-linear-to-r from-[#3B8DFF] to-[#B8D5FF] rounded-2xl p-12 ">
           <div className=" flex flex-col gap-2 ">
             <h1 className="text-5xl text-white font-bold  ">
               언제 어디서나 <br />

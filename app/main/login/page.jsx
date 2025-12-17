@@ -28,16 +28,39 @@ const Page = () => {
       if (response.ok) {
         const data = await response.json();
 
+        // 🔍 백엔드 데이터 확인용 로그
+        console.log("로그인 성공 데이터:", data);
+
         if (data.id) {
+             // 1. 기본 정보 저장
              localStorage.setItem("userId", data.id);
-             // ✅ [핵심 추가] 로그인할 때 이름도 같이 저장!
-             localStorage.setItem("userName", data.userName); 
+             localStorage.setItem("userName", data.userName);
+             
+             // ✅ [중요] 역할(Role) 정보도 저장!
+             localStorage.setItem("userRole", data.role); 
         }
 
         if (login) login(data);
 
-        alert(`환영합니다, ${data.userName || "회원"}님!`);
-        router.push("/main");
+        // 2. 환영 메시지 설정 (ADMIN 추가)
+        let roleName = "회원";
+        if (data.role === "HOSPITAL") roleName = "병원 관리자";
+        else if (data.role === "ADMIN") roleName = "시스템 관리자"; // ✅ 추가됨
+
+        alert(`환영합니다, ${data.userName} ${roleName}님!`);
+
+        // 🚀 3. 역할에 따라 페이지 이동 (3갈래 길)
+        if (data.role === "ADMIN") {
+            // (1) 관리자 -> 관리자 페이지로 이동
+            router.push("/admin");
+        } else if (data.role === "HOSPITAL") {
+            // (2) 병원 관리자 -> 병원 대시보드로 이동
+            router.push("/userhospital");
+        } else {
+            // (3) 일반 사용자 -> 메인 페이지로 이동
+            router.push("/main");
+        }
+
       } else {
         const errorText = await response.text();
         alert(errorText || "로그인에 실패했습니다.");
